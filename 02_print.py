@@ -22,6 +22,6 @@ print('hello', 'world', 'PyCharm')
 
 # 输出到当前目录下的print.txt文件中，
 # mode为a+，表示如果文件不存在就先创建再添加内容，如果存在就追加内容
-fp = open('./print.txt', 'a+')
+fp = open('02_print.txt', 'a+')
 print('helloworld', file=fp)
 fp.close()
