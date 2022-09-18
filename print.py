@@ -1,6 +1,10 @@
-# @Date  : 2022/9/18
-# @Author: shenBF
-# @Desc  :
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@Date  : 2022/9/18
+@Author: shenBF
+@Desc  :
+"""
 
 # 输出数字
 print(10)
