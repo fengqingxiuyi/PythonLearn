@@ -13,6 +13,8 @@ print(10.5)
 # 输出字符串
 print('hello')
 print("helloworld")
+print(chr(0b100111001011000))  # 使用二进制输出 乘
+print(ord('乘'))  # 输出 乘 的十进制
 
 # 输出表达式的结果
 print(1 + 1)
