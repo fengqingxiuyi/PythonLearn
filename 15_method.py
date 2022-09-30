@@ -41,3 +41,13 @@ print(stu)  # stu为实例对象
 print(type(Student))  # 输出 <class 'type'>
 print(Student)  # Student是类对象
 
+print("----------------")
+
+stu = Student("")
+print(Student.native_place)
+print(stu.native_place)
+print(Student.cm())
+print(stu.cm())
+print(Student.sm())
+print(stu.sm())
+
