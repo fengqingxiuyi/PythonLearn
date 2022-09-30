@@ -27,9 +27,17 @@ class Student:  # 类名，规范要求每个单词的首字母大写，其余�
     # 类方法
     @classmethod
     def cm(cls):
-        print('类方法')
+        print('类方法', cls)
 
 
 # 函数
 def drink():
     print('喝水...')
+
+
+stu = Student("")
+print(type(stu))  # 输出 <class '__main__.Student'>
+print(stu)  # stu为实例对象
+print(type(Student))  # 输出 <class 'type'>
+print(Student)  # Student是类对象
+
