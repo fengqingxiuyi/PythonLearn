@@ -17,3 +17,5 @@ except BaseException as e:
     print(e)
 else:
     print('结果为：', result)
+finally:
+    print('程序结束')
