@@ -23,3 +23,7 @@ print(stu.name)
 # print(stu.__age)
 print(dir(stu))  # 列出stu可以访问的属性与方法
 print(stu._Student__age)
+# 还可以修改改属性
+stu._Student__age = 30
+print(stu._Student__age)
+stu.show()
