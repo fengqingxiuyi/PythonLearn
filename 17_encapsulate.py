@@ -15,6 +15,9 @@ class Student:
     def show(self):
         print(self.name, self.__age)
 
+    def __show2(self):
+        print('私有的show方法', self.name, self.__age)
+
 
 stu = Student('张三', 20)
 stu.show()
@@ -27,3 +30,6 @@ print(stu._Student__age)
 stu._Student__age = 30
 print(stu._Student__age)
 stu.show()
+# 获取私有方法
+stu._Student__show2()
+
