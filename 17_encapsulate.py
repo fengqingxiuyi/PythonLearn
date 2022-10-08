@@ -30,6 +30,6 @@ print(stu._Student__age)
 stu._Student__age = 30
 print(stu._Student__age)
 stu.show()
-# 获取私有方法
+# 访问私有方法
 stu._Student__show2()
 
