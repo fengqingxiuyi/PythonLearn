@@ -31,5 +31,6 @@ stu._Student__age = 30
 print(stu._Student__age)
 stu.show()
 # 访问私有方法
+# stu.__show2()
 stu._Student__show2()
 
