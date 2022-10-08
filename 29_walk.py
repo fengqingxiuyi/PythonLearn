@@ -15,3 +15,9 @@ for dirPath, dirName, fileName in list_files:
     print(dirName)
     print(fileName)
     print('----------------------')
+    for dir in dirName:
+        print(os.path.join(dirPath, dir))
+
+    for file in fileName:
+        print(os.path.join(dirPath, file))
+    print('----------------------')
