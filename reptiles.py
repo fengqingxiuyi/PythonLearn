@@ -1,0 +1,174 @@
+# -*- coding: utf-8 -*-
+"""
+@Version: python3.9
+@Date   : 2024/5/7
+@Author : shenBF
+@Desc   : 爬虫 https://www.gequbao.com/music/1
+"""
+
+from bs4 import BeautifulSoup  # 网页解析，获取数据
+import requests  # 请求
+import urllib3
+from requests.exceptions import RequestException
+import json  # json解析
+import os  # 执行操作系统命令
+import re  # 正则表达式
+
+# 全局配置
+MUSIC_ID_START = 1  # 第一个下载的音乐ID
+MUSIC_ID_END = 50  # 最后一个需要下载的音乐ID
+baseHtmlUrl = "https://www.gequbao.com/music/"  # 要爬取的网页链接
+baseJsUrl = "https://www.gequbao.com/api/play_url?json=1&id="  # 要爬取的音乐地址链接
+save_path = "/Users/fqxyi/Downloads/music_py/"  # 下载的音乐保存的文件夹
+music_suffix = ".mp3"  # 下载的音乐的后缀名
+MUSIC_DOWNLOAD_RETRY = 3  # 重试次数的全局常量，同时也是为了防止递归死循环
+music_download_retry = MUSIC_DOWNLOAD_RETRY  # 重试次数的全局变量
+
+
+# 全局变量需要在方法内增加值
+def remove_to_global_retry():
+    global music_download_retry  # 声明是全局变量
+    music_download_retry -= 1
+
+
+# 重置全局变量
+def reset_global_retry():
+    global music_download_retry  # 声明是全局变量
+    music_download_retry = MUSIC_DOWNLOAD_RETRY
+
+
+# 获取音乐ID名称
+def id_name(music_id):
+    return "id_" + str(music_id)
+
+
+# 得到指定一个URL的网页内容
+def fetch_url(url):
+    print("fetch url:", url)
+    head = {  # 模拟浏览器头部信息，向豆瓣服务器发送消息
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+    # 用户代理，表示告诉服务器，我们是什么类型的机器、浏览器（本质上是告诉浏览器，我们可以接收什么水平的文件内容）
+    try:
+        response = requests.get(url, headers=head)
+        if response.status_code == 200:
+            response.encoding = "utf-8"
+            content = response.text
+            # print("fetch content:", content)
+            return content
+        else:
+            print("fetch failed:", response.status_code, response.reason)
+            return ""
+    except RequestException as e:
+        print("fetch failed:", e)
+    return ""
+
+
+# 爬取JS : 返回音乐下载地址 , 下面是示例地址和响应内容
+# https://www.gequbao.com/api/play_url?id=9908271&json=1
+# {
+#     "code": 1,
+#     "data": {
+#         "url": "https://nc-sycdn.kuwo.cn/f0d5c95514e23cb1e2b10bd4bce0d28b/663cd315/resource/n2/30/14/1136317872.mp3?from=vip"
+#     },
+#     "msg": "操作成功"
+# }
+def fetch_music_url(index):
+    complete_url = baseJsUrl + str(index)
+    json_data = fetch_url(complete_url)  # 保存获取到的网页源码
+    if json_data == "":
+        return ""
+    try:
+        json_map = json.loads(json_data)
+        url = json_map['data']['url']
+        return "" if url is None else url
+    except json.JSONDecodeError as e:
+        print("fetch music url failed:", e)
+        return ""
+
+
+# 爬取HTML : 返回音乐的名称
+def fetch_music_html(index):
+    complete_url = baseHtmlUrl + str(index)
+    html_data = fetch_url(complete_url)  # 保存获取到的网页源码
+    if html_data == "":
+        return ""
+    # 逐一解析数据
+    soup = BeautifulSoup(html_data, "html.parser")
+    for item in soup.find_all('span', class_="form-control bg-light overflow-hidden"):  # 查找符合要求的字符串
+        item = str(item)
+        # print("item is ", item)
+        if item.__contains__(music_suffix):
+            name = item \
+                .replace("<span class=\"form-control bg-light overflow-hidden\">", "") \
+                .replace("</span>", "") \
+                .strip()  # 去除空白符号
+            return "" if name is None else name
+
+
+# 下载音乐
+def download(_id, name, url):
+    print("download " + id_name(_id) + " start:", name, url)
+
+    # plan1
+    # escaped_name = re.escape(name)
+    # os.system("curl -o " + save_path + escaped_name + " " + url)
+
+    # plan2
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    # 文件夹不存在，则创建文件夹
+    folder = os.path.exists(save_path)
+    if not folder:
+        os.makedirs(save_path)
+    # 读取MP3资源
+    res = requests.get(url, stream=True, verify=False)
+    # 获取文件地址
+    file_path = os.path.join(save_path, name)
+    # print('start write file:', file_path)
+    # 打开本地文件夹路径file_path，以二进制流方式写入，保存到本地
+    with open(file_path, 'wb') as fd:
+        for chunk in res.iter_content():
+            fd.write(chunk)
+    print("download " + id_name(_id) + " succeed:", file_path)
+
+
+# 得到下载资源后下载
+def prepare_download(music_ids):
+    if music_download_retry == 0:
+        reset_global_retry()
+        return  # 跳出递归
+
+    failed_music_ids = []  # 下载失败的音乐集合
+
+    for _id in music_ids:
+        url = fetch_music_url(_id)
+        if url == "":
+            failed_music_ids.append(_id)
+            return
+        name = fetch_music_html(_id)
+        if name == "":
+            name = id_name(_id) + music_suffix
+        try:
+            download(_id, name, url)
+        except OSError or RequestException as e:
+            print("download " + id_name(_id) + " failed:", e)
+            failed_music_ids.append(_id)
+
+    print("download failed music_ids:", failed_music_ids)
+    remove_to_global_retry()
+    if len(failed_music_ids) != 0:
+        prepare_download(failed_music_ids)
+
+
+def main():
+    music_ids = []
+    for index in range(MUSIC_ID_START, MUSIC_ID_END + 1):
+        music_ids.append(index)
+    # print("music_ids:", music_ids)
+    prepare_download(music_ids)
+
+
+# 当程序执行时调用
+if __name__ == "__main__":
+    main()
+    print("爬取完毕！")
