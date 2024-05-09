@@ -1,10 +1,25 @@
 # PythonLearn
 
+## 打包
+
+1. 未安装pip3需要执行：`curl https://bootstrap.pypa.io/get-pip.py | python3`
+2. 未安装pyinstaller需执行：`pip3 install pyinstaller`
+3. `pyinstaller -F 目标python文件`，`-F`表示将所有库文件打包成一个可执行文件。
+
 ## FAQ
 
 ### PEP 8: W292 no newline at end of file
 
 PyCharm要求你在末尾新起一行，否则就会警告。更多信息：<https://pep8.readthedocs.io/en/latest/intro.html>
+
+### UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc3 in position 0: invalid continuation byte
+
+```python
+# 因为25_file.txt文件的编码格式是gbk，而当前文件的编码格式是utf-8，所以会报错。
+# file = open('25_file.txt', 'r')
+# 解决方案：指定编码格式
+file = open('25_file.txt', 'r', encoding='gbk')
+```
 
 ## 参考教程
 
