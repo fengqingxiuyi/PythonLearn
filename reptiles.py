@@ -12,17 +12,19 @@ import urllib3
 from requests.exceptions import RequestException
 import json  # json解析
 import os  # 执行操作系统命令
-import re  # 正则表达式
+
+# import re  # 正则表达式
 
 # 全局配置
 MUSIC_ID_START = 1  # 第一个下载的音乐ID
-MUSIC_ID_END = 50  # 最后一个需要下载的音乐ID
+MUSIC_ID_END = 300  # 最后一个需要下载的音乐ID
 baseHtmlUrl = "https://www.gequbao.com/music/"  # 要爬取的网页链接
 baseJsUrl = "https://www.gequbao.com/api/play_url?json=1&id="  # 要爬取的音乐地址链接
 save_path = "/Users/fqxyi/Downloads/music_py/"  # 下载的音乐保存的文件夹
 music_suffix = ".mp3"  # 下载的音乐的后缀名
 MUSIC_DOWNLOAD_RETRY = 3  # 重试次数的全局常量，同时也是为了防止递归死循环
 music_download_retry = MUSIC_DOWNLOAD_RETRY  # 重试次数的全局变量
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # 全局变量需要在方法内增加值
@@ -88,7 +90,7 @@ def fetch_music_url(index):
 
 
 # 爬取HTML : 返回音乐的名称
-def fetch_music_html(index):
+def fetch_music_name(index):
     complete_url = baseHtmlUrl + str(index)
     html_data = fetch_url(complete_url)  # 保存获取到的网页源码
     if html_data == "":
@@ -106,6 +108,15 @@ def fetch_music_html(index):
             return "" if name is None else name
 
 
+# 返回可以当做文件名的音乐名称
+def get_correct_music_name(_id, name):
+    if name == "":
+        name = id_name(_id) + music_suffix
+    if name.__contains__("/"):
+        name = name.replace("/", ",")
+    return name
+
+
 # 下载音乐
 def download(_id, name, url):
     print("download " + id_name(_id) + " start:", name, url)
@@ -115,15 +126,18 @@ def download(_id, name, url):
     # os.system("curl -o " + save_path + escaped_name + " " + url)
 
     # plan2
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    # urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)  # 提取到全局配置中
     # 文件夹不存在，则创建文件夹
     folder = os.path.exists(save_path)
     if not folder:
         os.makedirs(save_path)
-    # 读取MP3资源
-    res = requests.get(url, stream=True, verify=False)
     # 获取文件地址
     file_path = os.path.join(save_path, name)
+    if os.path.exists(file_path):
+        print(name, "is exist!")
+        return
+    # 读取MP3资源
+    res = requests.get(url, stream=True, verify=False)
     # print('start write file:', file_path)
     # 打开本地文件夹路径file_path，以二进制流方式写入，保存到本地
     with open(file_path, 'wb') as fd:
@@ -139,15 +153,14 @@ def prepare_download(music_ids):
         return  # 跳出递归
 
     failed_music_ids = []  # 下载失败的音乐集合
+    illegal_musics = {}  # 不合法的音乐集合，仅输出日志
 
     for _id in music_ids:
         url = fetch_music_url(_id)
-        if url == "":
-            failed_music_ids.append(_id)
-            return
-        name = fetch_music_html(_id)
-        if name == "":
-            name = id_name(_id) + music_suffix
+        if not url.startswith("http") or url == "":
+            illegal_musics.__setitem__(str(_id), url)
+            continue
+        name = get_correct_music_name(_id, fetch_music_name(_id))
         try:
             download(_id, name, url)
         except OSError or RequestException as e:
@@ -155,6 +168,7 @@ def prepare_download(music_ids):
             failed_music_ids.append(_id)
 
     print("download failed music_ids:", failed_music_ids)
+    print("download illegal musics:", illegal_musics)
     remove_to_global_retry()
     if len(failed_music_ids) != 0:
         prepare_download(failed_music_ids)
