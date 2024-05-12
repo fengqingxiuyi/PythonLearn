@@ -13,6 +13,8 @@ from requests.exceptions import RequestException
 import json  # json解析
 import os  # 执行操作系统命令
 
+
+import time  # 模拟延迟
 # import re  # 正则表达式
 
 # 全局配置
@@ -135,6 +137,7 @@ def download(_id, name, url):
     file_path = os.path.join(save_path, name)
     if os.path.exists(file_path):
         print(name, "is exist!")
+        time.sleep(5)  # 单位s，解决too many requests
         return
     # 读取MP3资源
     res = requests.get(url, stream=True, verify=False)
