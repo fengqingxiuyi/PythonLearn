@@ -13,8 +13,8 @@ from requests.exceptions import RequestException
 import json  # json解析
 import os  # 执行操作系统命令
 
-
 import time  # 模拟延迟
+
 # import re  # 正则表达式
 
 # 全局配置
@@ -26,6 +26,7 @@ save_path = "/Users/fqxyi/Downloads/music_py/"  # 下载的音乐保存的文件
 music_suffix = ".mp3"  # 下载的音乐的后缀名
 MUSIC_DOWNLOAD_RETRY = 3  # 重试次数的全局常量，同时也是为了防止递归死循环
 music_download_retry = MUSIC_DOWNLOAD_RETRY  # 重试次数的全局变量
+filter_music_by_name = ["翻自", "Cover"]  # 过滤名字中符合条件的music
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -149,6 +150,14 @@ def download(_id, name, url):
     print("download " + id_name(_id) + " succeed:", file_path)
 
 
+# 过滤不想下载的音乐
+def filterIllegalName(name):
+    for condition in filter_music_by_name:
+        if name.__contains__(condition):
+            return True
+    return False
+
+
 # 得到下载资源后下载
 def prepare_download(music_ids):
     if music_download_retry == 0:
@@ -156,22 +165,29 @@ def prepare_download(music_ids):
         return  # 跳出递归
 
     failed_music_ids = []  # 下载失败的音乐集合
-    illegal_musics = {}  # 不合法的音乐集合，仅输出日志
+    illegal_music_urls = {}  # 不合法的音乐集合，仅输出日志
+    filter_music_names = {}  # 过滤掉的音乐集合
 
     for _id in music_ids:
         url = fetch_music_url(_id)
         if not url.startswith("http") or url == "":
-            illegal_musics.__setitem__(str(_id), url)
+            illegal_music_urls.__setitem__(str(_id), url)
             continue
-        name = get_correct_music_name(_id, fetch_music_name(_id))
+        remote_music_name = fetch_music_name(_id)
+        if filterIllegalName(remote_music_name):
+            filter_music_names.__setitem__(str(_id), remote_music_name)
+            continue
+        correct_music_name = get_correct_music_name(_id, remote_music_name)
         try:
-            download(_id, name, url)
+            download(_id, correct_music_name, url)
         except OSError or RequestException as e:
             print("download " + id_name(_id) + " failed:", e)
             failed_music_ids.append(_id)
 
-    print("download failed music_ids:", failed_music_ids)
-    print("download illegal musics:", illegal_musics)
+    print("download failed music ids:", failed_music_ids)
+    print("download illegal music urls:", illegal_music_urls)
+    print("download filter music names:", filter_music_names)
+
     remove_to_global_retry()
     if len(failed_music_ids) != 0:
         prepare_download(failed_music_ids)
