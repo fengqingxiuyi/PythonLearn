@@ -27,6 +27,8 @@ music_suffix = ".mp3"  # 下载的音乐的后缀名
 MUSIC_DOWNLOAD_RETRY = 3  # 重试次数的全局常量，同时也是为了防止递归死循环
 music_download_retry = MUSIC_DOWNLOAD_RETRY  # 重试次数的全局变量
 filter_music_by_name = ["翻自", "Cover"]  # 过滤名字中符合条件的music
+filter_music_size_min = 2 * 1024 * 1024  # 文件大小小于2MB的文件需要被过滤
+filter_music_size_max = 10 * 1024 * 1024  # 文件大小大于10MB的文件需要被过滤
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -40,6 +42,32 @@ def remove_to_global_retry():
 def reset_global_retry():
     global music_download_retry  # 声明是全局变量
     music_download_retry = MUSIC_DOWNLOAD_RETRY
+
+
+# 获取文件大小
+def get_file_size(_url):
+    # 发送HEAD请求以获取文件大小
+    response = requests.head(_url)
+    # 获取Content-Length头部来确定文件大小（单位：字节）
+    file_size = response.headers.get('Content-Length')
+    return int(file_size) if file_size else None
+
+
+# 过滤文件内容太大或太小的文件
+def filterFileSize(file_size):
+    if file_size < filter_music_size_min:
+        return True
+    if file_size > filter_music_size_max:
+        return True
+    return False
+
+
+# 过滤不想下载的音乐
+def filterIllegalName(name):
+    for condition in filter_music_by_name:
+        if name.__contains__(condition):
+            return True
+    return False
 
 
 # 获取音乐ID名称
@@ -150,14 +178,6 @@ def download(_id, name, url):
     print("download " + id_name(_id) + " succeed:", file_path)
 
 
-# 过滤不想下载的音乐
-def filterIllegalName(name):
-    for condition in filter_music_by_name:
-        if name.__contains__(condition):
-            return True
-    return False
-
-
 # 得到下载资源后下载
 def prepare_download(music_ids):
     if music_download_retry == 0:
@@ -166,12 +186,17 @@ def prepare_download(music_ids):
 
     failed_music_ids = []  # 下载失败的音乐集合
     illegal_music_urls = {}  # 不合法的音乐集合，仅输出日志
-    filter_music_names = {}  # 过滤掉的音乐集合
+    filter_music_names = {}  # 根据名字过滤掉的音乐集合
+    filter_music_sizes = {}  # 根据大小过滤掉的音乐集合
 
     for _id in music_ids:
         url = fetch_music_url(_id)
         if not url.startswith("http") or url == "":
             illegal_music_urls.__setitem__(str(_id), url)
+            continue
+        file_size = get_file_size(url)
+        if filterFileSize(file_size):
+            filter_music_sizes.__setitem__(str(_id), str(file_size / 1024 / 1024) + "MB")
             continue
         remote_music_name = fetch_music_name(_id)
         if filterIllegalName(remote_music_name):
@@ -187,6 +212,7 @@ def prepare_download(music_ids):
     print("download failed music ids:", failed_music_ids)
     print("download illegal music urls:", illegal_music_urls)
     print("download filter music names:", filter_music_names)
+    print("download filter music sizes:", filter_music_sizes)
 
     remove_to_global_retry()
     if len(failed_music_ids) != 0:
