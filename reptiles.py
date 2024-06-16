@@ -26,7 +26,7 @@ save_path = "/Users/fqxyi/Downloads/music_py/"  # 下载的音乐保存的文件
 music_suffix = ".mp3"  # 下载的音乐的后缀名
 MUSIC_DOWNLOAD_RETRY = 3  # 重试次数的全局常量，同时也是为了防止递归死循环
 music_download_retry = MUSIC_DOWNLOAD_RETRY  # 重试次数的全局变量
-filter_music_by_name = ["翻自", "Cover"]  # 过滤名字中符合条件的music
+filter_music_by_name = ["翻自", "Cover", "抖音", "伴奏", "Live", "剧情"]  # 过滤名字中符合条件的music
 filter_music_size_min = 2 * 1024 * 1024  # 文件大小小于2MB的文件需要被过滤
 filter_music_size_max = 10 * 1024 * 1024  # 文件大小大于10MB的文件需要被过滤
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -50,7 +50,7 @@ def get_file_size(_url):
     response = requests.head(_url)
     # 获取Content-Length头部来确定文件大小（单位：字节）
     file_size = response.headers.get('Content-Length')
-    return int(file_size) if file_size else None
+    return int(file_size) if file_size else 0
 
 
 # 过滤文件内容太大或太小的文件
